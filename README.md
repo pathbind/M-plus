@@ -4,7 +4,7 @@
 
 M+ is a free, source-available multi-model AI work-and-review system originally developed for internal use at Pathbind Games.
 
-It is built around a deliberately asymmetric idea:
+It is built around an asymmetric idea:
 
 - one **Main** model is the sole author and owner of the work
 - independent **Reviewers** do not collaborate with the Main
@@ -51,7 +51,8 @@ M+ runs as a single browser file. There is no mandatory account, subscription, s
 22. [File editing](#file-editing)
 23. [Downloadable text and code files](#downloadable-text-and-code-files)
 24. [Image generation and visual review](#image-generation-and-visual-review)
-25. [Audio generation and review](#audio-generation-and-review)
+25. [Electronic schematics](#electronic-schematics)
+26. [Audio generation and review](#audio-generation-and-review)
 25. [Usage and estimated cost](#usage-and-estimated-cost)
 26. [Retry, stop and recovery](#retry-stop-and-recovery)
 27. [Export](#export)
@@ -83,7 +84,7 @@ That can take several forms:
 - use majority voting or an LLM judge to choose a winner
 - use a supervisor to route work among multiple agents
 
-All of these patterns can be useful. M+ deliberately chooses a different one.
+All of these patterns can be useful. M+ chooses a different one.
 
 M+ starts from the belief that many real tasks benefit from **clear ownership**. Someone should own the implementation, the argument, the document, the decision trail and the final deliverable. Review should create pressure on that owner, not dissolve ownership into a group.
 
@@ -242,7 +243,7 @@ M+ is not primarily a routing architecture. The Main does not send tasks to spec
 
 Mixture-of-Agents research commonly uses multiple proposer models followed by an aggregator that synthesises their outputs.
 
-M+ deliberately does not start with a pool of equal proposals.
+M+ does not start with a pool of equal proposals.
 
 There is one proposal owner. Other models are critics.
 
@@ -269,7 +270,7 @@ The Main is sovereign over the work. The Reviewers have no governing power, but 
 
 # What happens during a run
 
-The exact path depends on whether the task is normal text work, file/workspace work, image generation, or audio generation, but the overall sequence is consistent.
+The exact path depends on whether the task is normal text work, file/workspace work, electronic schematic generation, image generation, or audio generation, but the overall sequence is consistent.
 
 ## 1. M+ establishes requirements
 
@@ -512,7 +513,7 @@ Exports the current chat as:
 
 ## Composer
 
-M+ renders common mathematical notation rather than exposing raw LaTeX delimiters. Inline `\(...\)` notation and display `\[...\]` / `$$...$$` blocks are formatted locally. Common fractions, subscripts, superscripts, Greek letters, bra-ket notation and mathematical symbols are converted into readable browser typography. This is a deliberately lightweight built-in renderer rather than an external TeX dependency, so M+ remains a self-contained single HTML file.
+M+ renders common mathematical notation rather than exposing raw LaTeX delimiters. Inline `\(...\)` notation and display `\[...\]` / `$$...$$` blocks are formatted locally. Common fractions, subscripts, superscripts, Greek letters, bra-ket notation and mathematical symbols are converted into readable browser typography. This is a lightweight built-in renderer rather than an external TeX dependency, so M+ remains a self-contained single HTML file.
 
 The composer shows the **Your display name** value from Settings > Storage immediately above the input. If no display name is set, it shows **user**. The name is useful even in local mode and provides consistent authorship when projects later move into shared storage.
 
@@ -818,7 +819,7 @@ GET {baseUrl}/models
 
 If `/models` is unavailable, a manual model ID can be entered.
 
-Manual models are deliberately labelled as manual rather than falsely presented as API-validated.
+Manual models are labelled as manual rather than falsely presented as API-validated.
 
 ### Work endpoint
 
@@ -868,7 +869,7 @@ For example, two reviewer slots can both use the same Claude model.
 
 ## Duplicate Reviewers
 
-Duplicates are allowed deliberately.
+Duplicate Reviewers are allowed.
 
 Two copies of the same exact model run as separate Reviewer instances.
 
@@ -948,7 +949,7 @@ Again, these are provider-independent M+ choices. They are translated into each 
 
 ## Audio generation
 
-M+ 1.5.0 adds first-class audio output alongside image output. The Main owns the creative brief and a separate renderer produces the audio artifact.
+M+ 1.5.1 adds first-class audio output alongside image output. The Main owns the creative brief and a separate renderer produces the audio artifact.
 
 Supported task types:
 
@@ -979,7 +980,6 @@ M+ currently skips non-Gemini reviewer slots for audio rather than pretending th
 
 ### Current audio limitations
 
-- ElevenLabs currently makes its Music API available to paid ElevenLabs users.
 - Sound-effect generation currently requires an ElevenLabs API key.
 - Speech generation currently uses Gemini TTS.
 - Google Lyria 3 Clip produces a fixed 30-second clip. M+ uses Lyria 3 Pro for longer prompt-controlled music. Music targets below 30 seconds require ElevenLabs in this release rather than returning a misleading Google result.
@@ -1966,7 +1966,7 @@ Monetary values are based on:
 - provider-reported exact cost where available
 - M+'s embedded public list-price catalogue where known
 
-The current v1.5.0 price catalogue is dated:
+The current v1.5.1 price catalogue is dated:
 
 ```text
 2026-08-08
@@ -2276,7 +2276,7 @@ M+ compares the current semantic-style version against the latest GitHub Release
 Example release tag:
 
 ```text
-v1.5.0
+v1.5.1
 ```
 
 ## Download selection
@@ -2414,6 +2414,22 @@ It preserves unchanged binary package parts but cannot visually re-layout a docu
 
 PDF files can be preserved as workspace data but are not rewritten by the current browser workspace engine.
 
+
+# Electronic schematics
+
+M+ 1.5.1 treats requests for electronic and electrical schematics as structured engineering deliverables rather than generic image or audio generation.
+
+For a request such as `Generate an electronic schematic diagram`, the Main is required to emit a real `schematic.svg` artifact. The SVG uses conventional schematic presentation with component symbols, orthogonal wires, junctions, reference designators, values, pin labels, named rails and ground. It is intended to look and behave like an electronic schematic, not an ASCII drawing, block diagram or decorative AI image.
+
+If the request includes a BOM or bill of materials, M+ also requires `BOM.csv`, with references and values matching the final schematic. A deterministic check fails the run if the required SVG or BOM artifact is missing or malformed, so a response that only says it can create a schematic cannot pass verification.
+
+KiCad `.kicad_sch` is now a supported textual artifact type. When the user explicitly asks for editable KiCad or EDA source, the Main may provide `schematic.kicad_sch` in addition to the SVG. The SVG remains the default graphical deliverable because M+ can validate and preview it directly in the browser.
+
+Schematic requests are excluded from audio routing. Terms such as `audio amplifier`, `audio circuit` and `audio schematic` describe the engineering subject and no longer trigger music or sound generation. Generic image generation is also bypassed for schematic requests.
+
+The Main should use relevant conversation context already available in the chat instead of asking the user to paste back circuit details M+ itself previously produced. If a specific net, value or pin connection is genuinely uncertain, it should identify that exact uncertainty while still producing the recoverable parts of the drawing.
+
+Reviewers are told to inspect the actual SVG file, not only the explanatory prose. They should reject missing graphical output, ASCII-only substitutes, incoherent connectivity, mismatched BOM entries and schematic presentation that does not meet ordinary electronics conventions.
 
 # Audio generation and review
 
@@ -2586,7 +2602,7 @@ The MoA research pattern uses multiple LLM outputs and an aggregation stage.
 
 - https://arxiv.org/abs/2406.04692
 
-M+ deliberately preserves a single author instead of treating several proposer answers as equally owned inputs to a synthesiser.
+M+ preserves a single author instead of treating several proposer answers as equally owned inputs to a synthesiser.
 
 ## Debate and majority voting
 
