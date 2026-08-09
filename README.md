@@ -665,7 +665,7 @@ The point of the provider list is not to impose one "best" model. M+ is explicit
 - usable as Main or Reviewer
 - supported by M+ web research
 - supported for visual review
-- GPT Image is also used by the current image-generation path
+- available as an M+ image-generation backend through GPT Image 2
 
 ## Claude
 
@@ -682,6 +682,7 @@ The point of the provider list is not to impose one "best" model. M+ is explicit
 - usable as Main or Reviewer
 - supported by M+ web research
 - supported for visual review
+- available as an M+ image-generation backend through Nano Banana 2
 
 ## Grok
 
@@ -690,6 +691,7 @@ The point of the provider list is not to impose one "best" model. M+ is explicit
 - model discovery
 - usable as Main or Reviewer
 - supported by M+ web research
+- available as an M+ image-generation backend through Grok Imagine
 
 ## Mistral
 
@@ -697,30 +699,35 @@ The point of the provider list is not to impose one "best" model. M+ is explicit
 - model discovery
 - usable as Main or Reviewer
 - supported by M+ web research
+- available as an M+ image-generation backend through Mistral's image-generation tool
 
 ## Meta
 
 - Meta Model API integration
-- uses the OpenAI-compatible Chat Completions surface
+- uses the OpenAI-compatible Chat Completions surface for normal work
 - model discovery
 - usable as Main or Reviewer
+- supported as an M+ web-research engine through Meta's server-side web search
 
 ## Perplexity
 
-- Perplexity Gateway integration
+- Perplexity Gateway integration for normal model work
 - OpenAI-compatible model access
 - Gateway model discovery
 - usable as Main or Reviewer
+- supported as an M+ web-research engine through Perplexity Search
 
-M+ currently treats Perplexity here as a **model provider through Gateway**, not as the Project Evidence web-research engine. The dedicated web-research pipeline currently uses GPT, Claude, Gemini, Grok or Mistral.
+The normal Main/Reviewer path and the Evidence research path are separate: Gateway provides model access, while the research adapter uses Perplexity's search service to build the shared evidence dossier.
 
 ## Amazon
 
 - Amazon Bedrock integration
-- uses Bedrock's OpenAI-compatible Mantle interface
+- uses Bedrock's OpenAI-compatible Mantle interface for normal work
 - requires an **AWS Region**
 - model discovery is limited by M+ to Amazon Nova conversational models to avoid duplicating every third-party model available through Bedrock
 - usable as Main or Reviewer
+- supported as an M+ web-research engine through Nova grounding
+- available as an M+ image-generation backend through Nova Canvas
 
 Default region shown by M+ is `us-east-1`, but users should select the region that matches their Bedrock key and model access.
 
@@ -743,6 +750,8 @@ Default region shown by M+ is `us-east-1`, but users should select the region th
 - M+ can try supported regional compatible-mode endpoints
 - successful discovery can retain the working base URL
 - usable as Main or Reviewer
+- supported as an M+ web-research engine through Qwen web-search tools
+- available as an M+ image-generation backend where the account/region exposes a compatible Qwen Image endpoint
 
 ## DeepSeek
 
@@ -872,6 +881,57 @@ Opening a project restores that project's team.
 Saving from the Roles tab also makes the current team the default used when future projects are created.
 
 Existing projects keep their own saved teams.
+
+## Image generation
+
+The Roles tab also contains global image-generation preferences. These settings choose the **renderer**, not the owner of the work. The selected Main still interprets the request, creates the visual brief, receives Reviewer criticism and owns every revision.
+
+### Image generator
+
+Options:
+
+- Automatic
+- GPT Image 2
+- Gemini Nano Banana 2
+- Grok Imagine
+- Mistral Image Generation
+- Amazon Nova Canvas
+- Qwen Image
+
+**Automatic** tries connected image backends in M+'s preferred order and falls back to another connected generator if one backend cannot complete the request.
+
+### Aspect ratio
+
+Options:
+
+- Automatic
+- 1:1
+- 16:9
+- 9:16
+- 4:3
+- 3:4
+
+### Resolution
+
+Options:
+
+- Automatic
+- 1K
+- 2K
+- 4K
+
+These are common M+ resolution classes. Providers expose different native dimensions and limits, so M+ maps the requested class to the nearest supported output for the selected generator. A provider that cannot supply the requested 4K class may use its highest supported class instead.
+
+### Quality
+
+Options:
+
+- Automatic
+- Fast
+- Balanced
+- High
+
+Again, these are provider-independent M+ choices. They are translated into each generator's native quality controls where such controls exist; otherwise the preference is included in the visual brief.
 
 ---
 
@@ -1274,6 +1334,10 @@ Project > Evidence contains two related but distinct systems:
 1. live web research
 2. pinned evidence sources
 
+A central design point in M+ 1.4 is that **research is a project tool, not a privilege of the Main model**. The model that owns the work does not itself need a native web-search feature. M+ can use a separate connected provider as the research engine, build one evidence dossier, and give that same dossier to the Main and every Reviewer.
+
+That means, for example, a Cohere Main and a DeepSeek Reviewer can still work from live web research gathered by Gemini, Perplexity or another supported research engine.
+
 ## Web research modes
 
 ### Auto
@@ -1310,6 +1374,35 @@ Runs research before every task.
 
 Never starts automatic web research.
 
+## Research engine
+
+The Evidence tab lets you choose which connected provider gathers the live research dossier.
+
+Options:
+
+- Automatic
+- GPT
+- Claude
+- Gemini
+- Grok
+- Mistral
+- Meta
+- Perplexity
+- Amazon
+- Qwen
+
+### Automatic
+
+Recommended for most projects.
+
+M+ first considers a compatible connected engine already represented in the current team, then other connected research-capable providers. If one candidate cannot perform the search, M+ can continue to another available candidate.
+
+### Explicit engine
+
+Choosing a named provider tells M+ to use that provider for research rather than tying research to whichever model happens to be Main.
+
+The exact search mechanism differs by provider. Some expose a native server-side search tool, Perplexity exposes a dedicated search service, and Amazon Nova uses Bedrock grounding. M+ normalises the useful result into one research dossier and source list for the rest of the team.
+
 ## Search budget
 
 Range:
@@ -1324,26 +1417,7 @@ Default:
 5
 ```
 
-The budget is supplied both:
-
-- as a provider tool limit where the provider supports one
-- as an explicit instruction to the research model
-
-## Web-capable research providers
-
-The current M+ research adapter can use connected models from:
-
-- GPT
-- Claude
-- Gemini
-- Grok
-- Mistral
-
-M+ considers:
-
-- the current Main if it is web-capable
-- configured Reviewers if they are web-capable
-- other connected web-capable configured providers
+The budget controls how much live-search work M+ asks the selected engine to perform. Provider APIs expose different controls, so the value is mapped to the closest available provider mechanism.
 
 ## Shared research dossier
 
@@ -1354,7 +1428,13 @@ The resulting dossier and source list are then shared with:
 - Main
 - every Reviewer
 
-This avoids paying each Reviewer to independently rediscover the same public facts and reduces evidence asymmetry.
+This has three important consequences:
+
+1. the Main does not need native web-search capability
+2. Reviewers do not each have to pay to rediscover the same public facts
+3. Main and Reviewers challenge one another from a common evidence base rather than from unrelated hidden searches
+
+A Reviewer can still dispute the interpretation of a source, notice a missing source, or identify a research gap. Sharing the dossier does not force agreement.
 
 ## Web citations
 
@@ -1424,7 +1504,7 @@ Pinned URLs are fetched directly by the browser.
 
 A site can block that fetch with its CORS policy.
 
-This is different from model-native web research, which runs through the connected model provider's server-side search capability.
+This is different from provider-native research, where the search itself happens through the connected provider's search or grounding interface.
 
 ---
 
@@ -1677,7 +1757,9 @@ The downloadable file is created by M+, not claimed by the model.
 
 # Image generation and visual review
 
-M+ can detect a direct image-generation request and use its current image workflow.
+M+ can detect a direct image-generation request and run a reviewed visual workflow.
+
+The important architectural change in 1.4 is that **the image generator is separate from the Main model**. The Main owns the creative work; the selected image backend renders it.
 
 ## Main's role
 
@@ -1685,52 +1767,95 @@ The selected Main model:
 
 1. interprets the user's request
 2. creates the image-generation brief
-3. remains responsible for revisions after visual review
+3. remains responsible for the requested intent and acceptance criteria
+4. receives visual Reviewer criticism
+5. decides what criticism to accept, partially accept or reject
+6. writes the revised generation brief for the next iteration
 
-## Image generator
+The Main therefore remains the absolute owner of the work even when a completely different provider renders the pixels.
 
-The current browser build uses:
+## Image generators
 
-```text
-GPT Image 2
-```
+M+ 1.4 can use connected image-generation backends from:
 
-through the GPT provider.
+- GPT Image 2
+- Gemini Nano Banana 2
+- Grok Imagine
+- Mistral Image Generation
+- Amazon Nova Canvas
+- Qwen Image
 
-A GPT API key is therefore required for image generation even when the selected Main is another provider.
+The configured **Image generator** control is in Settings > Roles.
 
-## Current generation defaults
+### Automatic
 
-The current adapter requests:
+Automatic tries connected generators in M+'s preferred order and can fall back if one provider is unavailable or rejects the requested combination.
 
-- PNG
-- 1024 x 1024
-- medium quality
-- one image
+### Explicit generator
+
+Selecting a named generator keeps rendering on that backend. Provider errors are then surfaced rather than silently switching to a different visual model.
+
+## Aspect ratio, resolution and quality
+
+M+ exposes common provider-independent controls:
+
+**Aspect ratio**
+
+- Automatic
+- 1:1
+- 16:9
+- 9:16
+- 4:3
+- 3:4
+
+**Resolution**
+
+- Automatic
+- 1K
+- 2K
+- 4K
+
+**Quality**
+
+- Automatic
+- Fast
+- Balanced
+- High
+
+Different image APIs expose different parameter names, dimensions and maximums. M+ maps these common choices to the nearest supported provider settings and also carries the user's requested preference into the generation brief when an API does not expose a direct equivalent.
+
+This means 4K is a **requested resolution class**, not a promise that every connected generator can return a literal 4096-pixel edge. Providers with lower limits use their highest appropriate supported output.
+
+## Output
+
+The generated image is stored as a real M+ artifact and displayed in the conversation. M+ handles either base64 image output or a provider-generated image URL where the provider returns one.
 
 ## Visual reviewers
 
-The current visual-review adapter supports:
+The current direct visual-review adapter supports:
 
 - GPT
 - Claude
 - Gemini
 
-Other configured Reviewer providers can be valid for normal text/workspace review but may be unavailable for image inspection in the current single-file build.
+These Reviewers receive the **actual generated image**, not merely the generation prompt.
+
+Other configured Reviewer providers can still be valid for normal text/workspace review but are skipped for direct visual inspection until an image-input adapter exists for them.
 
 ## Visual review loop
 
-Reviewers inspect the **actual generated image**, not merely the prompt.
-
-They can report:
+Visual Reviewers can report:
 
 - visible defects
 - missing requested elements
 - acceptance-criterion failures
+- composition or readability problems
 - challenge questions
 - stronger visual approaches
 
-The Main then revises the image prompt and M+ regenerates the image.
+The Main then answers those objections, revises the image brief and asks the selected generator to render another version.
+
+The renderer never votes on the result and does not take ownership from the Main.
 
 ---
 
@@ -1774,7 +1899,7 @@ Monetary values are based on:
 - provider-reported exact cost where available
 - M+'s embedded public list-price catalogue where known
 
-The current v1.3.11 price catalogue is dated:
+The current v1.4.0 price catalogue is dated:
 
 ```text
 2026-08-08
@@ -1892,13 +2017,17 @@ If IndexedDB is unavailable, M+ contains a reduced fallback path. In that condit
 
 Optional.
 
-Shared mode moves project persistence to an external M+ Sync API v1 server.
+Shared workspace exists so **several people on different computers can work on the same M+ project as a team**. Instead of emailing ZIPs, exporting chats or passing different copies of a project back and forth, collaborators can open the same shared workspace and work against the same project state, chats, files, checkpoints and verification history.
 
-The AI providers themselves remain separate.
+The shared M+ Sync server stores project data and coordinates revisions and locks. Each collaborator still uses the AI provider keys available in their own browser session; provider credentials are not placed into the shared project.
 
 ---
 
 # Shared workspace mode
+
+Think of this as the **team mode** for M+.
+
+A local project belongs to one browser profile on one machine. A shared project lives on an M+ Sync server, so authorised collaborators can reach the same evolving project from their own computers. M+ uses revisions, project locks and polling to reduce the chance of two people unknowingly overwriting one another's changes.
 
 Settings > Storage contains:
 
@@ -2097,9 +2226,9 @@ This is intentional because M+ handles local projects and API credentials. Updat
 
 M+ is a client-side browser application.
 
-## No mandatory Pathbind account
+## No user account required
 
-Normal local use does not require a Pathbind Games account.
+Normal local use does not require a user account.
 
 ## Provider calls
 
@@ -2148,24 +2277,57 @@ Users handling high-value organisational credentials should apply their normal e
 
 # Current implementation limits
 
-These are current implementation boundaries, not promises about future releases.
+M+ 1.4 removes the old arbitrary attachment-context, per-file, ZIP-entry and uncompressed-size ceilings that existed in an earlier extraction path.
+
+The normal project workspace does **not** impose a fixed M+ project-size, file-size or file-count quota. The practical limits are the limits of the machine, browser, storage backend, file format and model APIs being used.
+
+## Large projects and context windows
+
+A large project does not have to fit into one model prompt.
+
+M+ builds a virtual workspace and lets the Main and Reviewers inspect it incrementally. Models can:
+
+- search across workspace text
+- inspect matching files
+- request exact files
+- request bounded line ranges
+- return to the workspace for more evidence
+
+This is why a project can be much larger than the context window of the selected model.
+
+Individual inspection operations are intentionally bounded so one request does not dump an arbitrarily large file into a single API call. Those are **prompt-operation safeguards**, not project-size limits. A model can continue reading/searching additional regions as needed.
+
+## Practical scaling limits
+
+Real-world limits can still come from:
+
+- available browser memory
+- browser or server storage quota
+- the amount of local disk available to the browser/storage backend
+- the context window and request-size limits of the selected AI provider
+- provider upload/request limits
+- browser CORS policy
+- the time needed to inspect extremely large projects
+- the formats that M+ knows how to unpack and edit
+
+M+ does not pretend these physical limits do not exist; it avoids adding arbitrary product quotas on top of them.
+
+## ZIP implementation
+
+The current in-browser ZIP engine supports ordinary single-disk ZIP archives.
+
+It does not currently support:
+
+- ZIP64 archives
+- multi-disk ZIP archives
+
+Those are archive-format implementation limits, not M+ project quotas.
 
 ## Browser CORS
 
 Direct provider and pinned-URL calls depend on browser CORS policy.
 
-## Attachment/context limits
-
-Current internal limits include:
-
-```text
-Total extracted attachment context: 180,000 characters
-Single-file extracted context:       40,000 characters
-ZIP entries:                         500
-ZIP uncompressed size:               30 MiB
-```
-
-These limits protect a single browser page from pathological archives and oversized prompt context.
+A remote service can prevent a single-file browser application from calling it directly even when the credentials are valid.
 
 ## Office editing
 
@@ -2179,19 +2341,31 @@ It preserves unchanged binary package parts but cannot visually re-layout a docu
 
 PDF files can be preserved as workspace data but are not rewritten by the current browser workspace engine.
 
-## Image generation
+## Image generation provider differences
 
-Current image generation depends on a GPT API key and GPT Image 2.
+M+ exposes one common image-generation UI over several different provider APIs.
+
+Not every backend supports every combination of:
+
+- aspect ratio
+- resolution
+- quality setting
+
+Automatic mode can fall back to another connected generator when appropriate. An explicitly selected generator surfaces its own API limitation instead.
+
+Qwen image generation also depends on the image-generation endpoint available to the user's Alibaba Model Studio account/region; Alibaba's current Model Studio image endpoints are workspace and region dependent.
 
 ## Visual review provider coverage
 
 Current direct image inspection supports GPT, Claude and Gemini.
 
+This is narrower than M+'s image-generation backend list. Expanding visual-review adapters is separate from adding renderers.
+
 ## Web research provider coverage
 
-Current project web-research adapters support GPT, Claude, Gemini, Grok and Mistral.
+The current project research engines are GPT, Claude, Gemini, Grok, Mistral, Meta, Perplexity, Amazon and Qwen.
 
-This is separate from a provider's general ability to access web information through its own products.
+Any Main or Reviewer model can consume the resulting shared research dossier. A model does not need its own native web-search tool to participate in a researched M+ run.
 
 ## Cost estimates
 
