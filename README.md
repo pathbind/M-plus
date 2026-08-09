@@ -1925,7 +1925,7 @@ Monetary values are based on:
 - provider-reported exact cost where available
 - M+'s embedded public list-price catalogue where known
 
-The current v1.4.3 price catalogue is dated:
+The current v1.4.4 price catalogue is dated:
 
 ```text
 2026-08-08
@@ -2208,12 +2208,16 @@ The License tab contains:
 - current M+ version
 - update status
 
-The current development build uses a repository placeholder until the public repository path is inserted.
-
-Once configured, M+ checks:
+The public M+ repository is:
 
 ```text
-https://api.github.com/repos/{OWNER}/{REPO}/releases/latest
+https://github.com/pathbind/M-plus
+```
+
+M+ checks its published GitHub Releases through:
+
+```text
+https://api.github.com/repos/pathbind/M-plus/releases/latest
 ```
 
 ## Automatic check
@@ -2231,12 +2235,12 @@ M+ compares the current semantic-style version against the latest GitHub Release
 Example release tag:
 
 ```text
-v1.4.3
+v1.4.4
 ```
 
 ## Download selection
 
-M+ looks first for a ZIP release asset whose filename contains `main-review`.
+M+ looks first for a ZIP release asset whose filename contains `mplus`. It also recognises older `main-review` bundles for backwards compatibility.
 
 If none exists, it falls back to another ZIP or the release page.
 
