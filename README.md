@@ -371,13 +371,13 @@ M+ does not silently relabel an iteration-limit result as "passed".
 
 # Getting started
 
-M+ is distributed as a single `index.html`.
+M+ is distributed as a single `Mplus.html`.
 
 ## Local use
 
 1. Download the M+ release.
 2. Extract the ZIP.
-3. Open `index.html` in a modern browser.
+3. Open `Mplus.html` in a modern browser.
 4. Open **Settings**.
 5. Add one or more API keys.
 6. Validate the providers and load their available models.
