@@ -949,7 +949,7 @@ Again, these are provider-independent M+ choices. They are translated into each 
 
 ## Audio generation
 
-M+ 1.5.1 adds first-class audio output alongside image output. The Main owns the creative brief and a separate renderer produces the audio artifact.
+M+ 1.5.2 adds first-class audio output alongside image output. The Main owns the creative brief and a separate renderer produces the audio artifact.
 
 Supported task types:
 
@@ -1966,7 +1966,7 @@ Monetary values are based on:
 - provider-reported exact cost where available
 - M+'s embedded public list-price catalogue where known
 
-The current v1.5.1 price catalogue is dated:
+The current v1.5.2 price catalogue is dated:
 
 ```text
 2026-08-08
@@ -2276,7 +2276,7 @@ M+ compares the current semantic-style version against the latest GitHub Release
 Example release tag:
 
 ```text
-v1.5.1
+v1.5.2
 ```
 
 ## Download selection
@@ -2417,13 +2417,17 @@ PDF files can be preserved as workspace data but are not rewritten by the curren
 
 # Electronic schematics
 
-M+ 1.5.1 treats requests for electronic and electrical schematics as structured engineering deliverables rather than generic image or audio generation.
+M+ 1.5.2 treats requests for electronic and electrical schematics as structured engineering deliverables rather than generic image or audio generation.
 
 For a request such as `Generate an electronic schematic diagram`, the Main is required to emit a real `schematic.svg` artifact. The SVG uses conventional schematic presentation with component symbols, orthogonal wires, junctions, reference designators, values, pin labels, named rails and ground. It is intended to look and behave like an electronic schematic, not an ASCII drawing, block diagram or decorative AI image.
 
-If the request includes a BOM or bill of materials, M+ also requires `BOM.csv`, with references and values matching the final schematic. A deterministic check fails the run if the required SVG or BOM artifact is missing or malformed, so a response that only says it can create a schematic cannot pass verification.
+If the request includes a BOM or bill of materials, M+ also requires `BOM.csv`, with references and values matching the final schematic. M+ now cross-checks reference designators found in the SVG against the BOM, so a BOM that stops part-way through the design or omits fitted references fails deterministic verification. A response that only says it can create a schematic cannot pass verification.
 
 KiCad `.kicad_sch` is now a supported textual artifact type. When the user explicitly asks for editable KiCad or EDA source, the Main may provide `schematic.kicad_sch` in addition to the SVG. The SVG remains the default graphical deliverable because M+ can validate and preview it directly in the browser.
+
+SVG schematic drafts are rendered as images inside the Main candidate and revision log rather than dumping raw XML into the conversation. Other generated file blocks are shown as compact draft-file chips while review is in progress. If a run fails after a draft was generated, M+ preserves those latest draft files as unverified downloadable artifacts instead of losing them.
+
+Schematic generation also uses a larger output allowance than ordinary text work. If a provider reports a truncated file response, M+ retries the complete file output with a larger allowance. Revision retries are larger than the first revision attempt, fixing an earlier case where the retry allowance could accidentally be smaller.
 
 Schematic requests are excluded from audio routing. Terms such as `audio amplifier`, `audio circuit` and `audio schematic` describe the engineering subject and no longer trigger music or sound generation. Generic image generation is also bypassed for schematic requests.
 
