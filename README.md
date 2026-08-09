@@ -511,7 +511,9 @@ Exports the current chat as:
 
 ## Composer
 
-M+ renders common inline `\(...\)` mathematical notation into readable Unicode where possible, so simple expressions such as qubit states appear as `|0⟩` and `|1⟩` rather than raw LaTeX escape sequences. This is lightweight formatting, not a full TeX engine.
+M+ renders common mathematical notation rather than exposing raw LaTeX delimiters. Inline `\(...\)` notation and display `\[...\]` / `$$...$$` blocks are formatted locally. Common fractions, subscripts, superscripts, Greek letters, bra-ket notation and mathematical symbols are converted into readable browser typography. This is a deliberately lightweight built-in renderer rather than an external TeX dependency, so M+ remains a self-contained single HTML file.
+
+The composer shows the **Your display name** value from Settings > Storage immediately above the input. If no display name is set, it shows **user**. The name is useful even in local mode and provides consistent authorship when projects later move into shared storage.
 
 The composer supports:
 
@@ -1923,7 +1925,7 @@ Monetary values are based on:
 - provider-reported exact cost where available
 - M+'s embedded public list-price catalogue where known
 
-The current v1.4.1 price catalogue is dated:
+The current v1.4.3 price catalogue is dated:
 
 ```text
 2026-08-08
@@ -2064,9 +2066,11 @@ Options:
 
 ## Your display name
 
-Optional collaborative attribution.
+Optional user/collaborator attribution.
 
-M+ can send this to the sync server as the current actor name.
+The name is shown above the main M+ input so the current author is always clear. If left empty, M+ displays **user**. In Shared workspace mode, M+ can also send the configured name to the sync server as the current actor name.
+
+The display name is recorded with each new user message and shown above that message in the conversation. If it is blank, M+ uses `user`. This allows collaborators on different computers to see who sent each message.
 
 ## M+ Sync server URL
 
@@ -2227,7 +2231,7 @@ M+ compares the current semantic-style version against the latest GitHub Release
 Example release tag:
 
 ```text
-v1.4.1
+v1.4.3
 ```
 
 ## Download selection
