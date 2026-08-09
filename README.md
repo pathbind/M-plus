@@ -51,6 +51,7 @@ M+ runs as a single browser file. There is no mandatory account, subscription, s
 22. [File editing](#file-editing)
 23. [Downloadable text and code files](#downloadable-text-and-code-files)
 24. [Image generation and visual review](#image-generation-and-visual-review)
+25. [Audio generation and review](#audio-generation-and-review)
 25. [Usage and estimated cost](#usage-and-estimated-cost)
 26. [Retry, stop and recovery](#retry-stop-and-recovery)
 27. [Export](#export)
@@ -268,7 +269,7 @@ The Main is sovereign over the work. The Reviewers have no governing power, but 
 
 # What happens during a run
 
-The exact path depends on whether the task is normal text work, file/workspace work, or image generation, but the overall sequence is consistent.
+The exact path depends on whether the task is normal text work, file/workspace work, image generation, or audio generation, but the overall sequence is consistent.
 
 ## 1. M+ establishes requirements
 
@@ -944,6 +945,46 @@ Again, these are provider-independent M+ choices. They are translated into each 
 ---
 
 # Review levels
+
+## Audio generation
+
+M+ 1.5.0 adds first-class audio output alongside image output. The Main owns the creative brief and a separate renderer produces the audio artifact.
+
+Supported task types:
+
+- Music
+- Sound effects
+- Speech
+
+Settings > Roles > Audio generation provides:
+
+- **Audio generator:** Automatic, ElevenLabs, Google
+- **Type:** Automatic, Music, Sound effect, Speech
+- **Duration:** Automatic, 5 sec, 10 sec, 15 sec, 30 sec, 1 min, 2 min, 3 min
+- **Vocals:** Automatic, Instrumental only, Vocals allowed
+- **Loop:** Automatic, Yes, No
+- **Speech voice:** Automatic plus a selection of Gemini prebuilt voices
+
+Automatic chooses only a renderer that supports the requested type. ElevenLabs is used for music and sound effects. Google uses Lyria 3 for music and Gemini TTS for speech. The existing Gemini API key is reused. ElevenLabs has its own media API-key card in Settings > APIs > Media and follows the same session-only or encrypted-vault rules as the other API keys.
+
+Generated audio is stored as a normal project artifact and shown in the conversation with an inline audio player and Download button. Music and sound-effect outputs use MP3 where supplied by the provider. Gemini speech output is wrapped locally as WAV.
+
+When Audio settings remain Automatic, the Main can infer type, duration, vocal intent, looping and speech voice from the request. Explicit settings override the Main.
+
+### Audio hostile review
+
+Generated audio can be independently inspected by configured Gemini reviewer slots. Those reviewers receive the actual audio, not merely the prompt, and can challenge audible artifacts, wrong style, duration problems, unwanted vocals, loop seams, pronunciation and other misses. If they require changes, the Main answers the findings, revises the audio brief and regenerates the asset.
+
+M+ currently skips non-Gemini reviewer slots for audio rather than pretending that every provider adapter can hear the generated file. If no Gemini reviewer is configured, the audio is generated with status `unreviewed`.
+
+### Current audio limitations
+
+- ElevenLabs currently makes its Music API available to paid ElevenLabs users.
+- Sound-effect generation currently requires an ElevenLabs API key.
+- Speech generation currently uses Gemini TTS.
+- Google Lyria 3 Clip produces a fixed 30-second clip. M+ uses Lyria 3 Pro for longer prompt-controlled music. Music targets below 30 seconds require ElevenLabs in this release rather than returning a misleading Google result.
+- Audio-provider charges are not yet reliably represented in M+'s estimated dollar budget because the media endpoints do not return the same token/cost telemetry as chat calls. Provider billing still applies.
+- A single request that asks for several different media types at once is not yet treated as a multi-asset production pipeline.
 
 ## Off
 
@@ -1925,7 +1966,7 @@ Monetary values are based on:
 - provider-reported exact cost where available
 - M+'s embedded public list-price catalogue where known
 
-The current v1.4.4 price catalogue is dated:
+The current v1.5.0 price catalogue is dated:
 
 ```text
 2026-08-08
@@ -2235,7 +2276,7 @@ M+ compares the current semantic-style version against the latest GitHub Release
 Example release tag:
 
 ```text
-v1.4.4
+v1.5.0
 ```
 
 ## Download selection
@@ -2372,6 +2413,23 @@ It preserves unchanged binary package parts but cannot visually re-layout a docu
 ## PDF
 
 PDF files can be preserved as workspace data but are not rewritten by the current browser workspace engine.
+
+
+# Audio generation and review
+
+Audio is a separate production path, analogous to image generation. The Main writes and revises the brief. The renderer owns only synthesis.
+
+### ElevenLabs
+
+The ElevenLabs adapter uses the current first-party music streaming endpoint for prompt-driven songs and the text-to-sound-effects endpoint for SFX. Music duration is passed directly when known. Sound-effect duration is limited to the provider's supported range and the loop preference is passed to the v2 sound model.
+
+### Google
+
+Music uses the Gemini API Lyria 3 family. Lyria 3 Clip is the fixed 30-second path and Lyria 3 Pro is used for longer prompt-controlled music. Shorter music targets use ElevenLabs. Speech uses Gemini 3.1 Flash TTS Preview with a prebuilt voice selected by the Main or forced in Settings. Gemini TTS returns raw PCM audio, which M+ wraps into a standard 24 kHz mono WAV file locally before storing it.
+
+### Review behaviour
+
+Audio review is currently enabled for Gemini reviewer slots because Gemini's current API accepts audio input for understanding and analysis. Review is intentionally not simulated for providers whose M+ adapter does not currently support audio input. A valid minority objection from an audio-capable reviewer still forces the Main to respond and, where necessary, regenerate.
 
 ## Image generation provider differences
 
