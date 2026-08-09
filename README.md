@@ -511,6 +511,8 @@ Exports the current chat as:
 
 ## Composer
 
+M+ renders common inline `\(...\)` mathematical notation into readable Unicode where possible, so simple expressions such as qubit states appear as `|0⟩` and `|1⟩` rather than raw LaTeX escape sequences. This is lightweight formatting, not a full TeX engine.
+
 The composer supports:
 
 - typed requests
@@ -520,6 +522,10 @@ The composer supports:
 - Shift+Enter for a new line
 
 While a run is active, the Send button becomes a Stop control.
+
+## Feedback
+
+The sidebar includes a **Feedback** link for ideas, bug reports and suggestions. It opens the Pathbind Games contact page in a new tab. No user account is required.
 
 ---
 
@@ -1448,6 +1454,24 @@ Web research sources are identified as:
 
 M+ renders these as clickable citations when the source exists.
 
+Pinned evidence citations use the same treatment:
+
+```text
+[[E1]]
+[[E2]]
+...
+```
+
+When the pinned source has a valid URL, the citation opens that source in a new tab.
+
+Workspace citations use:
+
+```text
+[[workspace:path:Lx-Ly]]
+```
+
+They are rendered as internal citation pills. Selecting one opens **Project → Files** and identifies the cited workspace path and line range.
+
 ## Evidence Mode
 
 Toggle:
@@ -1899,7 +1923,7 @@ Monetary values are based on:
 - provider-reported exact cost where available
 - M+'s embedded public list-price catalogue where known
 
-The current v1.4.0 price catalogue is dated:
+The current v1.4.1 price catalogue is dated:
 
 ```text
 2026-08-08
@@ -2203,7 +2227,7 @@ M+ compares the current semantic-style version against the latest GitHub Release
 Example release tag:
 
 ```text
-v1.4.0
+v1.4.1
 ```
 
 ## Download selection
