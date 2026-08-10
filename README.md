@@ -2,7 +2,7 @@
 
 **One model owns the work. Everyone else tries to break it.**
 
-M+ is a free, source-available multi-model AI work-and-review system originally developed for internal use at Pathbind Games.
+M+ is a free multi-model AI work-and-review system originally developed for internal use at Pathbind Games.
 
 It is built around a deliberately asymmetric idea:
 
