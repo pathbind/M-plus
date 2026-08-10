@@ -4,7 +4,7 @@
 
 M+ is a free multi-model AI work-and-review system originally developed for internal use at Pathbind Games.
 
-It is built around a deliberately asymmetric idea:
+It is built around an asymmetric idea:
 
 - one **Main** model is the sole author and owner of the work
 - independent **Reviewers** do not collaborate with the Main
@@ -19,9 +19,9 @@ M+ is therefore not a "many models answer, then choose the majority" system. It 
 
 The Main is the absolute ruler of the work, but not an unaccountable one. It owns every decision and every file change. The Reviewers exist specifically to make that ownership difficult: they look for unsupported claims, missed requirements, regressions, edge cases, weak assumptions and better alternatives. A strong objection from one Reviewer matters even if every other Reviewer is satisfied.
 
-M+ runs as a single browser file. There is no mandatory account, subscription, server, CLI, build process or Pathbind-hosted AI proxy for normal local use. You bring your own model API keys and pay the model providers directly.
+M+ runs as a single browser file. There is no mandatory account, subscription, server, CLI, build process or Pathbind-hosted AI proxy for normal local use. You bring your own API keys. You can use one OpenRouter key for many text models, use provider keys directly, or mix both approaches.
 
-> **Important:** M+ itself is free. AI API usage is charged separately by the model providers you choose.
+> **Important:** M+ itself is free. AI API usage is charged separately by OpenRouter or by the model providers you connect directly.
 
 ---
 
@@ -380,8 +380,8 @@ M+ is distributed as a single `Mplus.html`.
 2. Extract the ZIP.
 3. Open `Mplus.html` in a modern browser.
 4. Open **Settings**.
-5. Add one or more API keys.
-6. Validate the providers and load their available models.
+5. For the easiest setup, add one OpenRouter API key. Alternatively, add one or more direct provider API keys.
+6. Validate the connection and load the available models.
 7. Open **Roles**.
 8. Select the Main model.
 9. Add zero or more Reviewers.
@@ -539,14 +539,24 @@ The APIs tab configures model providers and API-key security.
 It is split into:
 
 1. API-key security
-2. built-in model providers
-3. Custom / BYOK providers
+2. OpenRouter easy setup
+3. direct built-in model providers
+4. Media providers
+5. Custom / BYOK providers
 
-M+ does not hard-code one tiny model list and assume those IDs exist for every user. Built-in providers attempt to discover the models actually available to the current API key.
+M+ does not hard-code one tiny model list and assume those IDs exist for every user. OpenRouter and the direct built-in providers attempt to discover the models actually available to the current API key.
+
+## OpenRouter easy setup
+
+OpenRouter is the simplest way to configure a multi-model M+ team. One OpenRouter API key can expose text models from multiple model providers through a single OpenAI-compatible endpoint. After validation, those exact OpenRouter model IDs appear in the Main and Reviewer selectors under an **OpenRouter** group.
+
+Direct provider cards remain available below it. They are independent of OpenRouter, so one project can mix OpenRouter-routed roles with roles that use direct provider keys.
+
+In this release OpenRouter is used for Main and Reviewer text calls and can also act as the M+ web-research engine. Existing image and audio renderers continue to use their direct provider or Media API keys.
 
 ## Provider validation
 
-For a built-in provider:
+For OpenRouter or a built-in direct provider:
 
 1. enter the API key
 2. M+ requests the provider's model catalogue
@@ -562,7 +572,7 @@ A temporary timeout, locked key or discovery failure should not be treated as pr
 
 ## Model selection
 
-Each built-in provider card contains:
+Each OpenRouter or built-in provider card contains:
 
 - API key
 - Get API key link
@@ -650,7 +660,7 @@ M+ includes migration handling for settings created by older builds that persist
 
 # Supported providers
 
-M+ currently exposes these built-in provider cards in this order:
+M+ provides **OpenRouter** as the easy multi-provider setup option. It then exposes these direct built-in provider cards in this order:
 
 1. GPT
 2. Claude
@@ -666,6 +676,15 @@ M+ currently exposes these built-in provider cards in this order:
 12. DeepSeek
 
 The point of the provider list is not to impose one "best" model. M+ is explicitly designed so the user can choose different model families for Main and Reviewers.
+
+## OpenRouter
+
+- one API key can expose text models from multiple model providers
+- model discovery uses the OpenRouter model catalogue
+- usable as Main or Reviewer
+- supported by M+ web research
+- direct provider APIs remain available and can be mixed with OpenRouter roles
+- OpenRouter image and audio routing is not used by M+ yet; current media generation keeps the existing direct renderer paths
 
 ## GPT
 
@@ -841,9 +860,11 @@ The Roles tab defines the actual AI team.
 It contains:
 
 - Main model
+- a Role instructions field for the Main
 - Review level
 - Maximum iterations
 - Reviewer 1 to Reviewer 12
+- a separate Role instructions field for every Reviewer slot
 
 ## Main model
 
@@ -866,6 +887,20 @@ Reviewers are assigned at the exact model level, not merely by provider.
 
 For example, two reviewer slots can both use the same Claude model.
 
+## Role instructions
+
+The Main and every Reviewer slot have their own optional **Role instructions** field.
+
+The fields are blank by default. Placeholder text gives examples of what they can be used for, such as preferred approach, style, priorities, technical focus, cost, usability, risks or assumptions.
+
+Role instructions belong to the role slot, not to the underlying model. Changing the model assigned to a slot does not erase that slot's instructions, and two Reviewer slots using the same model can have completely different instructions.
+
+Main instructions are supplied to the Main whenever it performs Main work, including revisions and media briefs. Reviewer instructions are supplied only to that specific Reviewer slot on each review pass.
+
+M+ adds these instructions to its built-in role prompt. They do not replace the required Main or Reviewer protocol, structured response formats or safety requirements.
+
+Role instructions are stored with the project's team configuration and are also included when that team is saved as the default for new projects. Shared workspace projects carry the same role-specific configuration.
+
 ## Duplicate Reviewers
 
 Duplicates are allowed deliberately.
@@ -879,7 +914,9 @@ This is not guaranteed to create independent reasoning in a statistical sense, b
 Each project retains its own:
 
 - Main
+- Main Role instructions
 - Reviewer slots
+- per-Reviewer Role instructions
 - Review level
 - maximum iterations
 
