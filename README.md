@@ -314,7 +314,7 @@ A deterministic validator failure is not a suggestion. It becomes a binding prob
 
 ## 5. Reviewers run independently
 
-Configured Reviewers launch in parallel.
+Configured Reviewers launch independently. Reviewers using different providers can run in parallel. Reviewers using the same provider are queued so one API key is not hit by several large review requests at the same instant.
 
 They do not see one another's first-pass findings.
 
@@ -2016,11 +2016,21 @@ The exact resume path depends on where the run stopped.
 
 ## Provider errors
 
-M+ attempts to present provider errors in a more useful form, including billing/quota failures where recognised.
+M+ classifies common transient transport and provider failures before surfacing an error.
+
+For temporary network failures, M+ automatically makes one retry. For explicit temporary HTTP failures such as rate limits and common provider server errors, M+ can make up to two retries and respects `Retry-After` where supplied.
+
+Authentication, invalid-request, billing, permission and similar non-transient errors are not repeatedly retried.
+
+During an automatic retry, the live activity display shows that M+ is retrying instead of immediately presenting the run as failed.
+
+Because a browser can occasionally lose a response after a provider has already received a request, a network retry can in rare cases duplicate a billed provider call. M+ therefore keeps raw network retries intentionally limited.
 
 ## Reviewer unavailability
 
-A Reviewer failure is surfaced explicitly.
+Reviewers using the same provider are serialised per provider. This reduces burst rate-limit failures when the same model or provider is used in several Reviewer slots.
+
+A Reviewer failure is surfaced explicitly only after the applicable automatic recovery attempts have failed.
 
 The rest of the team can continue where possible.
 
@@ -2255,11 +2265,13 @@ The public M+ repository is:
 https://github.com/pathbind/M-plus
 ```
 
-M+ checks its published GitHub Releases through:
+M+ first checks published GitHub Releases through:
 
 ```text
 https://api.github.com/repos/pathbind/M-plus/releases/latest
 ```
+
+If the repository has no published Release yet, M+ falls back to the public `Mplus.html` file on the repository's `main` branch and reads its embedded application version.
 
 ## Automatic check
 
@@ -2271,19 +2283,15 @@ M+ caches the result locally and checks at most once every approximately 24 hour
 
 ## Version comparison
 
-M+ compares the current semantic-style version against the latest GitHub Release tag.
+When a GitHub Release exists, M+ compares the current semantic-style version against its release tag.
 
-Example release tag:
-
-```text
-v1.5.0
-```
+When no Release exists, M+ compares against the version embedded in the repository copy of `Mplus.html`.
 
 ## Download selection
 
-M+ looks first for a ZIP release asset whose filename contains `mplus`. It also recognises older `main-review` bundles for backwards compatibility.
+For a published Release, M+ looks first for a ZIP release asset whose filename contains `mplus`. It also recognises older `main-review` bundles for backwards compatibility.
 
-If none exists, it falls back to another ZIP or the release page.
+If no Release exists, the update control links to the latest public `Mplus.html` in the repository instead.
 
 ## No silent self-update
 
