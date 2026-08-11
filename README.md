@@ -19,7 +19,7 @@ M+ is therefore not a "many models answer, then choose the majority" system. It 
 
 The Main is the absolute ruler of the work, but not an unaccountable one. It owns every decision and every file change. The Reviewers exist specifically to make that ownership difficult: they look for unsupported claims, missed requirements, regressions, edge cases, weak assumptions and better alternatives. A strong objection from one Reviewer matters even if every other Reviewer is satisfied.
 
-M+ runs as a single browser file. There is no mandatory account, subscription, server, CLI, build process or Pathbind-hosted AI proxy for normal local use. You bring your own API keys. You can use one OpenRouter key for many text models, use provider keys directly, or mix both approaches.
+M+ runs as a single browser file. There is no mandatory account, subscription, server, CLI, build process or Pathbind-hosted AI proxy for normal local use. You bring your own API keys. You can use one OpenRouter key for many text models and supported generative media, use provider keys directly, or mix both approaches.
 
 > **Important:** M+ itself is free. AI API usage is charged separately by OpenRouter or by the model providers you connect directly.
 
@@ -380,7 +380,7 @@ M+ is distributed as a single `Mplus.html`.
 2. Extract the ZIP.
 3. Open `Mplus.html` in a modern browser.
 4. Open **Settings**.
-5. For the easiest setup, add one OpenRouter API key. Alternatively, add one or more direct provider API keys.
+5. For the easiest setup, add one OpenRouter API key. That one key can cover Main, Reviewers, image generation, music, sound effects and speech. Alternatively, add one or more direct provider API keys.
 6. Validate the connection and load the available models.
 7. Open **Roles**.
 8. Select the Main model.
@@ -548,11 +548,11 @@ M+ does not hard-code one tiny model list and assume those IDs exist for every u
 
 ## OpenRouter easy setup
 
-OpenRouter is the simplest way to configure a multi-model M+ team. One OpenRouter API key can expose text models from multiple model providers through a single OpenAI-compatible endpoint. After validation, those exact OpenRouter model IDs appear in the Main and Reviewer selectors under an **OpenRouter** group.
+OpenRouter is the simplest way to configure a multi-model M+ team. One OpenRouter API key can expose text models from multiple model providers through a single endpoint. In v1.7.1, the same key can also be used by M+ for image generation, music, sound effects and speech. After validation, the available OpenRouter text model IDs appear in the Main and Reviewer selectors under an **OpenRouter** group.
 
 Direct provider cards remain available below it. They are independent of OpenRouter, so one project can mix OpenRouter-routed roles with roles that use direct provider keys.
 
-In this release OpenRouter is used for Main and Reviewer text calls and can also act as the M+ web-research engine. Existing image and audio renderers continue to use their direct provider or Media API keys.
+OpenRouter is used for Main and Reviewer text calls, can act as the M+ web-research engine, and can now provide generative media routes as well. M+ uses OpenRouter's image API for images, Lyria for music, GPT Audio for sound effects, and OpenRouter text-to-speech for speech. Direct renderer keys remain available and can be mixed with OpenRouter. The existing speech voice selector remains specific to the direct Google renderer; the OpenRouter speech route uses the Alloy voice in v1.7.1.
 
 ## Provider validation
 
@@ -684,7 +684,7 @@ The point of the provider list is not to impose one "best" model. M+ is explicit
 - usable as Main or Reviewer
 - supported by M+ web research
 - direct provider APIs remain available and can be mixed with OpenRouter roles
-- OpenRouter image and audio routing is not used by M+ yet; current media generation keeps the existing direct renderer paths
+- OpenRouter can now be used for image generation, music, sound effects and speech, while all existing direct renderer paths remain available
 
 ## GPT
 
