@@ -16,7 +16,7 @@
   <head>
     <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'sha256-pKs1E0RfZnjgts36Zkyr00ZlIe91TWuMMVs75DjDqzM='; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; connect-src https: http:; object-src 'none'; base-uri 'none'; form-action 'none'"
+      content="default-src 'none'; script-src 'sha256-nu1rIy3vOweBkcqKQYtei4Qp0dLPF9bIVEjIOJM3Osw='; style-src 'unsafe-inline'; img-src data: blob:; media-src data: blob:; connect-src https: http:; object-src 'none'; base-uri 'none'; form-action 'none'"
     ><title>M+</title><link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2718%27 fill=%27%23111%27/%3E%3Ctext x=%2732%27 y=%2740%27 text-anchor=%27middle%27 font-family=%27Arial,sans-serif%27 font-size=%2727%27 font-weight=%27700%27 fill=%27white%27%3EM%2B%3C/text%3E%3C/svg%3E"
@@ -5710,7 +5710,7 @@ body {
               M+
             </div>
             <div class="brand-version" title="Application version">
-              v1.7.1
+              v1.7.4
             </div>
           </div>
           <button
@@ -6073,7 +6073,7 @@ body {
             <div id="reviewerChecks" class="reviewer-slots">
             </div>
             <div class="settings-hint">
-              Choose a specific model for each reviewer slot. Built-in providers only offer models validated by the current API key. Custom/BYOK connectors also allow an explicitly labelled manual model when /models discovery is unavailable. Duplicate models are allowed and run independently. Reviewers are competitors: they challenge the Main, demand evidence and propose stronger alternatives.<br><strong>Role instructions:</strong> each field applies only to that specific Main or Reviewer slot and is added to M+'s built-in role instructions.<br><strong>Team persistence:</strong> this project keeps its own Main/reviewer structure. Saving from the Roles tab also makes the current structure the default for future projects.
+              Choose a specific model for each reviewer slot. Models are grouped by company and sorted from lowest to highest cost within each company, with equal-cost models ordered by ascending version number. Prices are shown as USD input/output cost per 1M tokens; OpenRouter prices come from its live catalogue and direct-provider prices use M+'s built-in catalogue. Unknown prices are listed last. Built-in providers only offer models validated by the current API key. Custom/BYOK connectors also allow an explicitly labelled manual model when /models discovery is unavailable. Duplicate models are allowed and run independently. Reviewers are competitors: they challenge the Main, demand evidence and propose stronger alternatives.<br><strong>Role instructions:</strong> each field applies only to that specific Main or Reviewer slot and is added to M+'s built-in role instructions.<br><strong>Team persistence:</strong> this project keeps its own Main/reviewer structure. Saving from the Roles tab also makes the current structure the default for future projects.
             </div>
             <div class="reviewers-title">
               Image generation
@@ -6656,7 +6656,7 @@ const $ = selector => document.querySelector(selector);
  // -----------------------------------------------------------------------------
  // Application constants and update configuration
  // -----------------------------------------------------------------------------
- const APP_VERSION='1.7.1';
+ const APP_VERSION='1.7.4';
 
  const GITHUB_REPO='pathbind/M-plus';
 
@@ -6690,8 +6690,12 @@ const $ = selector => document.querySelector(selector);
     const id=String(row?.id||'').trim();
     if(!id||row?.manual||seen.has(id))continue;
     seen.add(id);
+    const promptPrice=Number(row?.promptPrice), completionPrice=Number(row?.completionPrice);
     out.push({
-      id, name:String(row?.name||row?.displayName||row?.display_name||id)
+      id, name:String(row?.name||row?.displayName||row?.display_name||id),
+      ...(Number.isFinite(promptPrice)&&promptPrice>=0?{promptPrice}:{}),
+      ...(Number.isFinite(completionPrice)&&completionPrice>=0?{completionPrice}:{}),
+      ...(row?.company?{company:String(row.company)}:{})
     });
   } return out;
 }
@@ -10412,6 +10416,113 @@ function renderRun(run, assistantFallback, allowRetry=false){
  }
 
 
+ const MODEL_COMPANIES={
+  gpt:'OpenAI', claude:'Anthropic', gemini:'Google', grok:'xAI', mistral:'Mistral AI', meta:'Meta', perplexity:'Perplexity', amazon:'Amazon', cohere:'Cohere', kimi:'Moonshot AI', qwen:'Alibaba', deepseek:'DeepSeek'
+ };
+
+ const OPENROUTER_COMPANIES={
+  openai:'OpenAI', anthropic:'Anthropic', google:'Google', 'x-ai':'xAI', xai:'xAI', mistralai:'Mistral AI', mistral:'Mistral AI', 'meta-llama':'Meta', meta:'Meta', qwen:'Alibaba', alibaba:'Alibaba', deepseek:'DeepSeek', moonshotai:'Moonshot AI', moonshot:'Moonshot AI', cohere:'Cohere', amazon:'Amazon', perplexity:'Perplexity', nvidia:'NVIDIA', microsoft:'Microsoft', minimax:'MiniMax', zhipu:'Zhipu AI', 'z-ai':'Zhipu AI', nousresearch:'Nous Research', openrouter:'OpenRouter'
+ };
+
+ function titleCompanySlug(value){
+  return String(value||'').split(/[-_\s]+/).filter(Boolean).map(x=>x.length<=3?x.toUpperCase():x[0].toUpperCase()+x.slice(1)).join(' ')||'Other';
+ }
+
+ function companyFromModelId(modelId){
+  const id=String(modelId||'').toLowerCase();
+  if(/(?:^|\/)(?:gpt-|o[134](?:-|$))/.test(id))return'OpenAI';
+  if(/claude/.test(id))return'Anthropic';
+  if(/gemini/.test(id))return'Google';
+  if(/grok/.test(id))return'xAI';
+  if(/mistral|magistral/.test(id))return'Mistral AI';
+  if(/llama|muse/.test(id))return'Meta';
+  if(/kimi|moonshot/.test(id))return'Moonshot AI';
+  if(/qwen/.test(id))return'Alibaba';
+  if(/deepseek/.test(id))return'DeepSeek';
+  if(/command[-_.]/.test(id))return'Cohere';
+  if(/nova/.test(id))return'Amazon';
+  return'';
+ }
+
+ function modelCompany(provider, model={}){
+  if(model?.company)return String(model.company);
+  if(isCustomProvider(provider))return providerLabel(provider);
+  const id=String(model?.id||'');
+  if(provider==='openrouter'){
+    const slug=id.includes('/')?id.split('/')[0].toLowerCase():'openrouter';
+    return OPENROUTER_COMPANIES[slug]||companyFromModelId(id)||titleCompanySlug(slug);
+  }
+  if(provider==='perplexity')return companyFromModelId(id)||'Perplexity';
+  return MODEL_COMPANIES[provider]||providerLabel(provider);
+ }
+
+ function modelMenuPrice(provider, model={}){
+  const prompt=Number(model?.promptPrice), completion=Number(model?.completionPrice);
+  if(Number.isFinite(prompt)&&prompt>=0&&Number.isFinite(completion)&&completion>=0)return {input:prompt*1000000, output:completion*1000000};
+  const price=pricingFor(provider, model?.id||'', {});
+  if(price&&Number.isFinite(Number(price.input))&&Number(price.input)>=0&&Number.isFinite(Number(price.output))&&Number(price.output)>=0)return {input:Number(price.input), output:Number(price.output)};
+  return null;
+ }
+
+ function modelMenuCost(provider, model={}){
+  const price=modelMenuPrice(provider, model);
+  return price?price.input+price.output:Number.POSITIVE_INFINITY;
+ }
+
+ function formatModelRate(value){
+  const n=Number(value);
+  if(!Number.isFinite(n)||n<0)return'';
+  const decimals=n<0.01?4:n<0.1?3:n<10?2:n<100?1:0;
+  return '$'+n.toFixed(decimals).replace(/\.?0+$/,'');
+ }
+
+ function modelPriceLabel(provider, model={}){
+  const price=modelMenuPrice(provider, model);
+  return price?`${formatModelRate(price.input)} in / ${formatModelRate(price.output)} out per 1M`:'price unknown';
+ }
+
+ function modelMenuLabel(provider, model={}){
+  return `${modelOptionLabel(model)} · ${modelPriceLabel(provider, model)}`;
+ }
+
+ function modelVersionParts(model={}){
+  const source=String(model?.id||model?.name||model?.displayName||model?.display_name||'');
+  const matches=source.match(/\d+(?:\.\d+)*/g)||[];
+  return matches.flatMap(token=>token.split('.').map(part=>Number(part)));
+ }
+
+ function compareModelVersions(a={}, b={}){
+  const av=modelVersionParts(a), bv=modelVersionParts(b), count=Math.max(av.length,bv.length);
+  for(let i=0;i<count;i++){
+    if(i>=av.length)return -1;
+    if(i>=bv.length)return 1;
+    if(av[i]!==bv[i])return av[i]-bv[i];
+  }
+  return 0;
+ }
+
+ function compareModelsByCost(providerA, a, providerB=providerA, b=a){
+  const ca=modelMenuCost(providerA,a), cb=modelMenuCost(providerB,b);
+  if(ca!==cb)return ca-cb;
+  const byVersion=compareModelVersions(a,b);
+  if(byVersion)return byVersion;
+  const na=modelOptionLabel(a), nb=modelOptionLabel(b);
+  const byName=na.localeCompare(nb, undefined, {numeric:true, sensitivity:'base'});
+  if(byName)return byName;
+  return String(a?.id||'').localeCompare(String(b?.id||''), undefined, {numeric:true, sensitivity:'base'});
+ }
+
+ function sortModelsForMenu(provider, models=[]){
+  return [...models].sort((a,b)=>compareModelsByCost(provider,a,provider,b));
+ }
+
+ function modelRouteLabel(provider){
+  if(provider==='openrouter')return'OpenRouter';
+  if(provider==='perplexity')return'Perplexity';
+  if(isCustomProvider(provider))return providerLabel(provider);
+  return'Direct';
+ }
+
  function modelOptionLabel(model){
   const name=model?.name||model?.displayName||model?.display_name||model?.id||'';
   return model?.manual?`${name} · manual`:name;
@@ -10426,7 +10537,21 @@ function renderRun(run, assistantFallback, allowRetry=false){
   const manual=cfg?.modelMode==='manual';
   const autoName=cfg?.modelName || (cfg?.model ? prettifyModelId(id, cfg.model): 'strongest available');
   const options=[`<option value="${AUTO_MODEL_VALUE}" ${manual?'':'selected'}>Automatic · ${escapeHtml(autoName)}</option>`];
-  for(const row of rows) options.push(`<option value="${escapeHtml(row.id)}" ${manual&&row.id===cfg.model?'selected':''}>${escapeHtml(modelOptionLabel(row))}</option>`);
+  const sorted=sortModelsForMenu(id, rows);
+  if(id==='openrouter'){
+    const groups=new Map();
+    for(const row of sorted){
+      const company=modelCompany(id,row);
+      if(!groups.has(company))groups.set(company,[]);
+      groups.get(company).push(row);
+    }
+    for(const [company, companyRows] of [...groups.entries()].sort((a,b)=>a[0].localeCompare(b[0], undefined, {sensitivity:'base'}))){
+      const groupOptions=companyRows.map(row=>`<option value="${escapeHtml(row.id)}" ${manual&&row.id===cfg.model?'selected':''}>${escapeHtml(modelMenuLabel(id,row))}</option>`).join('');
+      if(groupOptions)options.push(`<optgroup label="${escapeHtml(company)}">${groupOptions}</optgroup>`);
+    }
+  } else {
+    for(const row of sorted) options.push(`<option value="${escapeHtml(row.id)}" ${manual&&row.id===cfg.model?'selected':''}>${escapeHtml(modelMenuLabel(id,row))}</option>`);
+  }
   return options.join('');
  }
 
@@ -10911,7 +11036,7 @@ async function switchStorageContext(){
   for(const group of groups){
 
 
-    const rows=group.models.map(model=>`<option value="${escapeHtml(encodeReviewerChoice(group.provider,model.id))}">${escapeHtml(modelOptionLabel(model))}</option>`).join('');
+    const rows=group.models.map(model=>`<option value="${escapeHtml(encodeReviewerChoice(model.provider,model.id))}">${escapeHtml(model.menuLabel||modelOptionLabel(model))}</option>`).join('');
     if(rows)opts.push(`<optgroup label="${escapeHtml(group.label)}">${rows}</optgroup>`);
   } select.innerHTML=opts.join('');
   select.disabled=!hasAny;
@@ -10950,7 +11075,7 @@ async function switchStorageContext(){
 
 
  function reviewerOptionGroups(){
-  const groups=[], team=teamFromSettings(state.settings);
+  const byCompany=new Map(), team=teamFromSettings(state.settings);
   const retained=[...(team.mainProvider&&team.mainModel?[{
     provider:team.mainProvider, model:team.mainModel, modelName:team.mainModelName
   }]:[]),...(team.reviewerSlots||[])];
@@ -10961,12 +11086,22 @@ async function switchStorageContext(){
       if(!models.some(m=>m.id===saved.model))models.push({
         id:saved.model, name:saved.modelName||prettifyModelId(provider, saved.model), saved:true
       });
-    } if(!models.length)continue;
-    const liveName=isCustomProvider(provider)?String($(`#name-${provider}`)?.value||'').trim():'';
-    groups.push({
-      provider, label:liveName||providerLabel(provider), models
-    });
-  } return groups;
+    }
+    for(const model of models){
+      const company=modelCompany(provider,model);
+      if(!byCompany.has(company))byCompany.set(company,[]);
+      byCompany.get(company).push({...model, provider});
+    }
+  }
+  return [...byCompany.entries()].sort((a,b)=>a[0].localeCompare(b[0], undefined, {sensitivity:'base'})).map(([label, models])=>{
+    const providers=new Set(models.map(x=>x.provider)), showRoute=providers.size>1;
+    models.sort((a,b)=>compareModelsByCost(a.provider,a,b.provider,b));
+    return {
+      label, models:models.map(model=>({
+        ...model, menuLabel:modelOptionLabel(model)+(showRoute?` · ${modelRouteLabel(model.provider)}`:'')+` · ${modelPriceLabel(model.provider,model)}`
+      }))
+    };
+  });
  }
 
 
@@ -10989,7 +11124,7 @@ async function switchStorageContext(){
     for(const group of groups){
 
 
-      const rows=group.models.map(model=>`<option value="${escapeHtml(encodeReviewerChoice(group.provider,model.id))}">${escapeHtml(modelOptionLabel(model))}</option>`).join('');
+      const rows=group.models.map(model=>`<option value="${escapeHtml(encodeReviewerChoice(model.provider,model.id))}">${escapeHtml(model.menuLabel||modelOptionLabel(model))}</option>`).join('');
       if(rows)optionParts.push(`<optgroup label="${escapeHtml(group.label)}">${rows}</optgroup>`);
     } html.push(`<div class="reviewer-slot"><label><span>Reviewer ${i+1}</span><select class="reviewer-slot-select" data-reviewer-slot="${i+1}" ${hasAny?'':'disabled'}>${optionParts.join('')}</select></label><label class="role-instructions"><span>Role instructions</span><textarea class="reviewer-role-instructions" data-reviewer-instructions="${i+1}" rows="2" placeholder="Optional instructions for this reviewer, e.g. focus on technical accuracy, cost, usability, risks or assumptions"></textarea></label></div>`);
   } host.innerHTML=html.join('');
@@ -12346,8 +12481,13 @@ async function fetchJson(url, options={
     const id=String(row?.id || row?.name || '').replace(/^models\//, '');
     if (!familyFilter(provider, id)) continue;
     const name=row?.displayName || row?.display_name || row?.name_display || prettifyModelId(provider, id);
+    const promptPrice=Number(row?.pricing?.prompt ?? row?.promptPrice);
+    const completionPrice=Number(row?.pricing?.completion ?? row?.completionPrice);
     if (!unique.has(id)) unique.set(id, {
-      id, name
+      id, name,
+      ...(Number.isFinite(promptPrice)&&promptPrice>=0?{promptPrice}:{}),
+      ...(Number.isFinite(completionPrice)&&completionPrice>=0?{completionPrice}:{}),
+      ...(row?.company?{company:String(row.company)}:{})
     });
   } return [...unique.values()].sort((a, b)=>modelScore(provider, b.id)-modelScore(provider, a.id));
  }
